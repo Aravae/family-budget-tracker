@@ -292,27 +292,49 @@
             const id = target.closest('tr')?.dataset.id; 
             const field = target.dataset.field;
             
-            if (action === 'add') {
-                addItem(type);
-            } else if (action === 'remove') {
-                if (id) removeItem(type, id);
-            } else if (action === 'change-month') {
-                changeMonth(parseInt(target.dataset.delta));
-            } else if (action === 'update-value' && id && field) {
-                const arr = type === 'income' ? budgetData.incomes : budgetData.expenses;
-                const item = arr.find(i => i.id === id);
-                if (item) {
-                    item[field] = parseFloat(target.value) || 0;
-                    renderApp(); 
-                    saveBudget();
+            // 1. --- CLICK ACTIONS (buttons: add/remove/change-month) ---
+            if (event.type === 'click') {
+                if (action === 'add') {
+                    addItem(type);
+                } else if (action === 'remove') {
+                    if (id) removeItem(type, id);
+                } else if (action === 'change-month') {
+                    changeMonth(parseInt(target.dataset.delta));
                 }
-            } else if (action === 'update-name' && id) {
+                return;
+            }
+            
+            // 2. --- INPUT FIELD CHANGES (Typing or Blurring) ---
+            
+            const isUpdateAction = action === 'update-value' || action === 'update-name';
+
+            if (isUpdateAction && id) {
                 const arr = type === 'income' ? budgetData.incomes : budgetData.expenses;
                 const item = arr.find(i => i.id === id);
+
                 if (item) {
-                    item.name = target.value;
-                    renderApp(); 
-                    saveBudget();
+                    // 2a. Update the model (data is always updated regardless of event type)
+                    if (action === 'update-value') {
+                        item[field] = parseFloat(target.value) || 0;
+                    } else if (action === 'update-name') {
+                        item.name = target.value;
+                    }
+
+                    // 2b. IMMEDIATE LIVE UPDATE (Fires on 'input' - every keystroke)
+                    // We only update the summary/charts to avoid losing focus in the table rows.
+                    if (event.type === 'input') {
+                        const totals = calculateTotals();
+                        renderSummary(totals);
+                        updateChart(totals); 
+                        return; // CRITICAL: Exit early to keep the cursor active
+                    }
+                    
+                    // 2c. FINAL UPDATE (Fires on 'change' - blur or Enter)
+                    if (event.type === 'change') {
+                        // This updates the variance column in the table, saves data, and updates chart labels (if name changed)
+                        renderApp(); 
+                        saveBudget();
+                    }
                 }
             }
         };
@@ -320,8 +342,8 @@
         const setupEventListeners = () => {
             // General event delegation for buttons and inputs
             document.addEventListener('click', handleInput);
-            document.addEventListener('change', handleInput);
-            document.addEventListener('input', handleInput);
+            document.addEventListener('change', handleInput); // Fires on blur/Enter
+            document.addEventListener('input', handleInput);  // Fires on every keystroke
         };
 
 
@@ -746,3 +768,4 @@
 
 </body>
 </html>
+
