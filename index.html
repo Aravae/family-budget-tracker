@@ -28,11 +28,12 @@
         }
         /* New: Reduced width for numerical inputs to prevent horizontal scrolling */
         .numeric-input {
-            @apply w-full sm:w-24 text-right;
+            /* Keep width minimal, allowing cell constraints to control the final size */
+            @apply w-full text-right;
         }
-        /* Reduce padding in table cells for tighter layout */
+        /* Adjusted padding in table cells for much tighter layout */
         .budget-td {
-            @apply p-2 border-t;
+            @apply p-1 border-t;
         }
     </style>
 </head>
@@ -390,7 +391,7 @@
                 
                 return `
                 <tr data-id="${item.id}" class="hover:bg-gray-50">
-                    <td class="budget-td w-2/5">
+                    <td class="budget-td w-[40%]">
                         <input
                             type="text"
                             value="${item.name}"
@@ -399,7 +400,7 @@
                             data-action="update-name"
                         />
                     </td>
-                    <td class="budget-td">
+                    <td class="budget-td w-[15%]">
                         <input
                             type="number"
                             value="${item.planned}"
@@ -410,7 +411,7 @@
                             data-action="update-value"
                         />
                     </td>
-                    <td class="budget-td">
+                    <td class="budget-td w-[15%]">
                         <input
                             type="number"
                             value="${item.actual}"
@@ -421,10 +422,10 @@
                             data-action="update-value"
                         />
                     </td>
-                    <td class="budget-td font-semibold text-right ${varianceClass}">
+                    <td class="budget-td w-[20%] font-semibold text-right ${varianceClass}">
                         $${variance.toFixed(2)}
                     </td>
-                    <td class="budget-td text-center w-8">
+                    <td class="budget-td text-center w-[10%]">
                         <button class="text-red-500 hover:text-red-700 transition" 
                                 data-type="${type}" 
                                 data-action="remove">
@@ -721,11 +722,12 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Source</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Planned ($)</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actual ($)</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Variance</th>
-                                <th class="px-3 py-2 w-8"></th>
+                                <!-- Tightened horizontal padding and explicitly set width percentages (40% for name, 15% x 2 for values, 20% for variance, 10% for button) -->
+                                <th class="px-1 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[40%]">Source</th>
+                                <th class="px-1 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">Planned ($)</th>
+                                <th class="px-1 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">Actual ($)</th>
+                                <th class="px-1 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">Variance</th>
+                                <th class="px-1 py-2 w-[10%]"></th>
                             </tr>
                         </thead>
                         <tbody id="income-rows" class="bg-white divide-y divide-gray-100">
@@ -749,11 +751,12 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Category</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Planned ($)</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actual ($)</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Variance</th>
-                                <th class="px-3 py-2 w-8"></th>
+                                <!-- Tightened horizontal padding and explicitly set width percentages -->
+                                <th class="px-1 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[40%]">Category</th>
+                                <th class="px-1 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">Planned ($)</th>
+                                <th class="px-1 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">Actual ($)</th>
+                                <th class="px-1 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">Variance</th>
+                                <th class="px-1 py-2 w-[10%]"></th>
                             </tr>
                         </thead>
                         <tbody id="expense-rows" class="bg-white divide-y divide-gray-100">
