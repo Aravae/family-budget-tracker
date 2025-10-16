@@ -45,32 +45,17 @@
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // --- 🚨 CRITICAL: FIREBASE CONFIGURATION FOR EXTERNAL DEPLOYMENT 🚨 ---
-        // You MUST replace the values in the EXTERNAL_FIREBASE_CONFIG object below
-        // with your own Web App configuration from your Firebase project.
-        // If you do not, the app will display a configuration error on GitHub Pages.
+        // This is the clean, correct configuration object structure:
         const EXTERNAL_FIREBASE_CONFIG = {
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "firebase/app";
-        import { getAnalytics } from "firebase/analytics";
-        // TODO: Add SDKs for Firebase products that you want to use
-        // https://firebase.google.com/docs/web/setup#available-libraries
-
-        // Your web app's Firebase configuration
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-        const firebaseConfig = {
-        apiKey: "AIzaSyBwOeH2ygx-T48GJtt26uiw-JcTkTOO8lk",
-        authDomain: "vera-family-budget.firebaseapp.com",
-        projectId: "vera-family-budget",
-        storageBucket: "vera-family-budget.firebasestorage.app",
-        messagingSenderId: "193031935721",
-        appId: "1:193031935721:web:0dbe53c2852ee9c2844278",
-        measurementId: "G-998YVZCMDV"
-        },
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+            apiKey: "AIzaSyBwOeH2ygx-T48GJtt26uiw-JcTkTOO8lk",
+            authDomain: "vera-family-budget.firebaseapp.com",
+            projectId: "vera-family-budget",
+            storageBucket: "vera-family-budget.firebasestorage.app",
+            messagingSenderId: "193031935721",
+            appId: "1:193031935721:web:0dbe53c2852ee9c2844278",
+            measurementId: "G-998YVZCMDV"
         };
+        // ----------------------------------------------------------------------
         
         // Determine which configuration to use: Canvas environment (highest priority) or the external one
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
