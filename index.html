@@ -34,18 +34,18 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, getDoc, collection, query, limit, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, limit, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Set Firebase Log Level
-        // setLogLevel('Debug');
+        // Set Firebase Log Level to Debug
+        setLogLevel('debug');
 
         // Global Firebase and App Variables (Canvas Variables are prioritized)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // --- 🚨 CRITICAL: FIREBASE CONFIGURATION FOR EXTERNAL DEPLOYMENT 🚨 ---
-        // This is the clean, correct configuration object structure:
+        // --- FIREBASE CONFIGURATION FOR EXTERNAL DEPLOYMENT ---
+        // Your actual configuration keys are used here.
         const EXTERNAL_FIREBASE_CONFIG = {
             apiKey: "AIzaSyBwOeH2ygx-T48GJtt26uiw-JcTkTOO8lk",
             authDomain: "vera-family-budget.firebaseapp.com",
@@ -55,7 +55,6 @@
             appId: "1:193031935721:web:0dbe53c2852ee9c2844278",
             measurementId: "G-998YVZCMDV"
         };
-        // ----------------------------------------------------------------------
         
         // Determine which configuration to use: Canvas environment (highest priority) or the external one
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
@@ -71,8 +70,8 @@
             expenses: []
         };
         let chartInstance = null;
-        let historicalChartInstance = null; // New instance for trend chart
-        let monthlySavingsTrend = []; // To store historical data
+        let historicalChartInstance = null;
+        let monthlySavingsTrend = [];
         
         const today = new Date();
         let currentYear = today.getFullYear();
@@ -103,7 +102,7 @@
         let saveTimeout;
         const saveBudget = () => {
             if (!db || !userId || !budgetData.monthId) {
-                console.error("Firestore not ready or monthId missing.");
+                console.error("Firestore not ready or monthId missing. Data not saved.");
                 return;
             }
 
@@ -113,7 +112,6 @@
                     const docRef = getBudgetDocRef(budgetData.monthId);
                     await setDoc(docRef, budgetData, { merge: true });
                     console.log("Budget saved successfully for:", budgetData.monthId);
-                    // Rerun historical load to include the new/updated month
                     loadHistoricalTrendData(); 
                 } catch (e) {
                     console.error("Error saving budget:", e);
@@ -127,10 +125,7 @@
             if (!db || !userId) return;
 
             try {
-                // Collection path: /artifacts/{appId}/users/{userId}/budgets
                 const collectionRef = collection(db, 'artifacts', appId, 'users', userId, 'budgets');
-                
-                // Query all documents, ordering by monthId (YYYY-MM) to ensure chronological order
                 const q = query(collectionRef, orderBy('monthId'));
                 
                 const querySnapshot = await getDocs(q);
@@ -139,12 +134,8 @@
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
                     if (data.monthId && data.incomes && data.expenses) {
-                        
-                        // Calculate actual income and expenses from the historical document
                         const actualIncome = data.incomes.reduce((sum, item) => sum + (item.actual || 0), 0);
                         const actualExpenses = data.expenses.reduce((sum, item) => sum + (item.actual || 0), 0);
-
-                        // Only track actual savings for the trend chart
                         const actualSavings = actualIncome - actualExpenses;
                         
                         historicalData.push({
@@ -154,7 +145,6 @@
                     }
                 });
 
-                // Update the global state and re-render the historical chart
                 monthlySavingsTrend = historicalData;
                 updateHistoricalChart();
                 
@@ -177,7 +167,6 @@
             // Listen for real-time updates
             onSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
-                    // Update the local data with the latest from Firestore
                     const loadedData = docSnap.data();
                     budgetData = {
                         ...loadedData,
@@ -186,10 +175,7 @@
                     };
                     console.log("Budget loaded/updated in real-time:", budgetData);
                 } else {
-                    // Initialize with defaults if document doesn't exist
                     console.log("No data found, initializing default structure for", monthId);
-                    // This check is overly complex since we reload budgetData, but for completeness:
-                    // If budgetData is empty (which it is on initial load if no Firestore data exists)
                     if (budgetData.incomes.length === 0) {
                          budgetData.incomes = [
                             { id: crypto.randomUUID(), name: 'Adult 1 Salary', planned: 0, actual: 0 },
@@ -207,25 +193,19 @@
                             { id: crypto.randomUUID(), name: 'Toys/Gifts', planned: 0, actual: 0 },
                         ];
                     }
-                    saveBudget(); // Save the initialized structure
+                    saveBudget();
                 }
                 renderApp();
             }, (error) => {
                 console.error("Error setting up onSnapshot:", error);
-                displayMessage(`Error loading budget: ${error.message}`, 'error');
+                // Log the error message to the UI to aid debugging
+                displayMessage(`Error loading budget data: ${error.message}. Check your Firebase Rules.`, 'error'); 
             });
         };
 
         // --- AUTHENTICATION & INITIALIZATION ---
 
         const initFirebase = async () => {
-            // Check for the placeholder value in the API key field for external deployment
-            if (firebaseConfig && firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
-                console.error("Firebase config is incomplete for GitHub deployment.");
-                displayMessage("Firebase configuration error: Please replace YOUR_API_KEY_HERE in the code.", 'error');
-                return;
-            }
-
             if (!firebaseConfig || !firebaseConfig.projectId) {
                 console.error("Firebase config is missing or invalid.");
                 displayMessage("Firebase configuration error. Check console for details.", 'error');
@@ -239,30 +219,111 @@
                 const authReadyPromise = new Promise((resolve) => {
                     onAuthStateChanged(auth, async (user) => {
                         if (!user) {
-                            // Only attempt to use initialAuthToken (Canvas specific) if it exists
                             if (initialAuthToken) {
                                 await signInWithCustomToken(auth, initialAuthToken);
                             } else {
-                                // For external deployment, sign in anonymously (requires Firebase Auth enabled)
                                 await signInAnonymously(auth);
                             }
                         }
                         userId = auth.currentUser?.uid || crypto.randomUUID();
-                        // Updated display text to just "Hello!"
                         document.getElementById('user-id-display').textContent = `Hello!`;
                         resolve();
                     });
                 });
 
                 await authReadyPromise;
+                
+                // Add all main event listeners after successful authentication
+                setupEventListeners();
+                
                 loadBudget();
-                loadHistoricalTrendData(); // Load historical data on startup
+                loadHistoricalTrendData();
 
             } catch (e) {
                 console.error("Firebase initialization failed:", e);
                 displayMessage(`Initialization failed: ${e.message}. Ensure Firebase Auth (Anonymous) and Firestore are enabled.`, 'error');
             }
         };
+
+        // --- CORE APPLICATION LOGIC ---
+        
+        const addItem = (type) => {
+            const newItem = {
+                id: crypto.randomUUID(),
+                name: type === 'income' ? 'New Income Stream' : 'New Category',
+                planned: 0,
+                actual: 0
+            };
+            if (type === 'income') {
+                budgetData.incomes.push(newItem);
+            } else {
+                budgetData.expenses.push(newItem);
+            }
+            renderApp();
+            saveBudget();
+        };
+
+        const removeItem = (type, id) => {
+            if (type === 'income') {
+                budgetData.incomes = budgetData.incomes.filter(i => i.id !== id);
+            } else {
+                budgetData.expenses = budgetData.expenses.filter(i => i.id !== id);
+            }
+            renderApp();
+            saveBudget();
+        };
+
+        const changeMonth = (delta) => {
+            currentMonth += delta;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            } else if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            loadBudget();
+        };
+
+        const handleInput = (event) => {
+            const target = event.target;
+            const action = target.dataset.action;
+            const type = target.dataset.type;
+            const id = target.closest('tr')?.dataset.id; 
+            const field = target.dataset.field;
+            
+            if (action === 'add') {
+                addItem(type);
+            } else if (action === 'remove') {
+                if (id) removeItem(type, id);
+            } else if (action === 'change-month') {
+                changeMonth(parseInt(target.dataset.delta));
+            } else if (action === 'update-value' && id && field) {
+                const arr = type === 'income' ? budgetData.incomes : budgetData.expenses;
+                const item = arr.find(i => i.id === id);
+                if (item) {
+                    item[field] = parseFloat(target.value) || 0;
+                    renderApp(); 
+                    saveBudget();
+                }
+            } else if (action === 'update-name' && id) {
+                const arr = type === 'income' ? budgetData.incomes : budgetData.expenses;
+                const item = arr.find(i => i.id === id);
+                if (item) {
+                    item.name = target.value;
+                    renderApp(); 
+                    saveBudget();
+                }
+            }
+        };
+
+        const setupEventListeners = () => {
+            // General event delegation for buttons and inputs
+            document.addEventListener('click', handleInput);
+            document.addEventListener('change', handleInput);
+            document.addEventListener('input', handleInput);
+        };
+
 
         // --- UI & RENDERING FUNCTIONS ---
 
@@ -271,7 +332,7 @@
             if (container) {
                 const color = type === 'error' ? 'bg-red-500' : 'bg-green-500';
                 container.innerHTML = `<div class="p-3 text-white rounded-lg shadow-lg ${color}">${message}</div>`;
-                setTimeout(() => container.innerHTML = '', 5000);
+                setTimeout(() => container.innerHTML = '', 7000);
             }
         };
 
@@ -287,7 +348,8 @@
                             type="text"
                             value="${item.name}"
                             class="input-box bg-white font-medium"
-                            onchange="handleNameChange('${type}', '${item.id}', this.value)"
+                            data-type="${type}"
+                            data-action="update-name"
                         />
                     </td>
                     <td class="p-3 border-t">
@@ -296,7 +358,9 @@
                             value="${item.planned}"
                             min="0"
                             class="input-box text-right"
-                            oninput="handleValueChange('${type}', '${item.id}', 'planned', this.value)"
+                            data-type="${type}"
+                            data-field="planned"
+                            data-action="update-value"
                         />
                     </td>
                     <td class="p-3 border-t">
@@ -305,16 +369,20 @@
                             value="${item.actual}"
                             min="0"
                             class="input-box text-right"
-                            oninput="handleValueChange('${type}', '${item.id}', 'actual', this.value)"
+                            data-type="${type}"
+                            data-field="actual"
+                            data-action="update-value"
                         />
                     </td>
                     <td class="p-3 border-t font-semibold text-right">
                         ${(item.actual - item.planned).toFixed(2)}
                     </td>
                     <td class="p-3 border-t text-center">
-                        <button onclick="removeItem('${type}', '${item.id}')" class="text-red-500 hover:text-red-700 transition">
+                        <button class="text-red-500 hover:text-red-700 transition" 
+                                data-type="${type}" 
+                                data-action="remove">
                             <!-- SVG Trash Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 pointer-events-none">
                                 <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.5H2.75a.75.75 0 0 0 0 1.5h14.5a.75.75 0 0 0 0-1.5H14.5v-.5A2.75 2.75 0 0 0 11.75 1h-3.5ZM4.68 8.25a.75.75 0 0 1 .785-.644l.872.232 1.353 9.471a.75.75 0 0 1-.785.864l-.916-.135a.75.75 0 0 1-.689-.806l1.3-9.124Zm10.638-1.597a.75.75 0 1 1 1.488.24l-1.4 8.75a.75.75 0 1 1-1.488-.24l1.4-8.75Zm-5.322 0a.75.75 0 1 1 1.488.24l-1.35 9.45a.75.75 0 0 1-1.488-.24l1.35-9.45Z" clip-rule="evenodd" />
                             </svg>
                         </button>
@@ -540,68 +608,6 @@
             renderTableRows('expense');
             renderSummary(totals);
             updateChart(totals);
-            // updateHistoricalChart is called after loadHistoricalTrendData completes
-        };
-
-        // --- HANDLERS (EXPOSED TO GLOBAL SCOPE FOR HTML ACCESS) ---
-
-        window.handleValueChange = (type, id, field, value) => {
-            const arr = type === 'income' ? budgetData.incomes : budgetData.expenses;
-            const item = arr.find(i => i.id === id);
-            if (item) {
-                // Ensure value is treated as a number
-                item[field] = parseFloat(value) || 0;
-            }
-            renderApp(); // Rerender to show immediate calculation updates
-            saveBudget();
-        };
-
-        window.handleNameChange = (type, id, name) => {
-            const arr = type === 'income' ? budgetData.incomes : budgetData.expenses;
-            const item = arr.find(i => i.id === id);
-            if (item) {
-                item.name = name;
-            }
-            renderApp(); // Rerender to update chart labels
-            saveBudget();
-        };
-
-        window.addItem = (type) => {
-            const newItem = {
-                id: crypto.randomUUID(),
-                name: type === 'income' ? 'New Income Stream' : 'New Category',
-                planned: 0,
-                actual: 0
-            };
-            if (type === 'income') {
-                budgetData.incomes.push(newItem);
-            } else {
-                budgetData.expenses.push(newItem);
-            }
-            renderApp();
-            saveBudget();
-        };
-
-        window.removeItem = (type, id) => {
-            if (type === 'income') {
-                budgetData.incomes = budgetData.incomes.filter(i => i.id !== id);
-            } else {
-                budgetData.expenses = budgetData.expenses.filter(i => i.id !== id);
-            }
-            renderApp();
-            saveBudget();
-        };
-
-        window.changeMonth = (delta) => {
-            currentMonth += delta;
-            if (currentMonth > 11) {
-                currentMonth = 0;
-                currentYear++;
-            } else if (currentMonth < 0) {
-                currentMonth = 11;
-                currentYear--;
-            }
-            loadBudget(); // Reload data for the new month
         };
 
         // Initialize on window load
@@ -620,11 +626,13 @@
 
         <!-- Month Navigation -->
         <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-lg mb-8">
-            <button onclick="changeMonth(-1)" class="secondary-btn text-indigo-600 border-indigo-300">
+            <!-- Updated to use data-action -->
+            <button data-action="change-month" data-delta="-1" class="secondary-btn text-indigo-600 border-indigo-300">
                 &larr; Previous Month
             </button>
             <h2 id="month-display" class="text-3xl font-bold text-gray-800">Month/Year</h2>
-            <button onclick="changeMonth(1)" class="secondary-btn text-indigo-600 border-indigo-300">
+            <!-- Updated to use data-action -->
+            <button data-action="change-month" data-delta="1" class="secondary-btn text-indigo-600 border-indigo-300">
                 Next Month &rarr;
             </button>
         </div>
@@ -656,7 +664,8 @@
             <section class="bg-white p-6 rounded-xl shadow-lg">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-xl font-semibold text-green-700">Income Streams</h3>
-                    <button onclick="addItem('income')" class="btn primary-btn bg-green-500 hover:bg-green-600 text-sm flex items-center">
+                    <!-- Updated to use data-action -->
+                    <button data-action="add" data-type="income" class="btn primary-btn bg-green-500 hover:bg-green-600 text-sm flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-1"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>
                         Add Income
                     </button>
@@ -683,7 +692,8 @@
             <section class="bg-white p-6 rounded-xl shadow-lg">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-xl font-semibold text-red-700">Expense Categories</h3>
-                    <button onclick="addItem('expense')" class="btn primary-btn bg-red-500 hover:bg-red-600 text-sm flex items-center">
+                    <!-- Updated to use data-action -->
+                    <button data-action="add" data-type="expense" class="btn primary-btn bg-red-500 hover:bg-red-600 text-sm flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-1"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>
                         Add Expense
                     </button>
