@@ -26,6 +26,14 @@
         .secondary-btn {
             @apply bg-white text-gray-700 border border-gray-300 hover:bg-gray-100;
         }
+        /* New: Reduced width for numerical inputs to prevent horizontal scrolling */
+        .numeric-input {
+            @apply w-full sm:w-24 text-right;
+        }
+        /* Reduce padding in table cells for tighter layout */
+        .budget-td {
+            @apply p-2 border-t;
+        }
     </style>
 </head>
 <body>
@@ -357,49 +365,66 @@
                 setTimeout(() => container.innerHTML = '', 7000);
             }
         };
+        
+        // Helper function for rendering table rows to determine variance color
+        const getRowVarianceClass = (type, planned, actual) => {
+            const variance = actual - planned;
+            if (type === 'income') {
+                // Income: green if actual >= planned (positive variance)
+                return variance >= 0 ? 'text-green-600' : 'text-red-600';
+            } else if (type === 'expense') {
+                // Expenses: green if actual <= planned (negative/zero variance)
+                return variance <= 0 ? 'text-green-600' : 'text-red-600';
+            }
+            return 'text-gray-700'; 
+        };
 
         const renderTableRows = (type) => {
             const dataArray = type === 'income' ? budgetData.incomes : budgetData.expenses;
             const container = document.getElementById(`${type}-rows`);
             if (!container) return;
 
-            container.innerHTML = dataArray.map((item, index) => `
+            container.innerHTML = dataArray.map((item, index) => {
+                const variance = item.actual - item.planned;
+                const varianceClass = getRowVarianceClass(type, item.planned, item.actual);
+                
+                return `
                 <tr data-id="${item.id}" class="hover:bg-gray-50">
-                    <td class="p-3 border-t">
+                    <td class="budget-td w-2/5">
                         <input
                             type="text"
                             value="${item.name}"
-                            class="input-box bg-white font-medium"
+                            class="input-box bg-white font-medium w-full"
                             data-type="${type}"
                             data-action="update-name"
                         />
                     </td>
-                    <td class="p-3 border-t">
+                    <td class="budget-td">
                         <input
                             type="number"
                             value="${item.planned}"
                             min="0"
-                            class="input-box text-right"
+                            class="input-box numeric-input"
                             data-type="${type}"
                             data-field="planned"
                             data-action="update-value"
                         />
                     </td>
-                    <td class="p-3 border-t">
+                    <td class="budget-td">
                         <input
                             type="number"
                             value="${item.actual}"
                             min="0"
-                            class="input-box text-right"
+                            class="input-box numeric-input"
                             data-type="${type}"
                             data-field="actual"
                             data-action="update-value"
                         />
                     </td>
-                    <td class="p-3 border-t font-semibold text-right">
-                        ${(item.actual - item.planned).toFixed(2)}
+                    <td class="budget-td font-semibold text-right ${varianceClass}">
+                        $${variance.toFixed(2)}
                     </td>
-                    <td class="p-3 border-t text-center">
+                    <td class="budget-td text-center w-8">
                         <button class="text-red-500 hover:text-red-700 transition" 
                                 data-type="${type}" 
                                 data-action="remove">
@@ -410,7 +435,7 @@
                         </button>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         };
 
         const calculateTotals = () => {
@@ -696,11 +721,11 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Source</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Planned ($)</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Actual ($)</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Source</th>
+                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Planned ($)</th>
+                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actual ($)</th>
                                 <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Variance</th>
-                                <th class="px-3 py-2"></th>
+                                <th class="px-3 py-2 w-8"></th>
                             </tr>
                         </thead>
                         <tbody id="income-rows" class="bg-white divide-y divide-gray-100">
@@ -724,11 +749,11 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Category</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Planned ($)</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Actual ($)</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Category</th>
+                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Planned ($)</th>
+                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actual ($)</th>
                                 <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Variance</th>
-                                <th class="px-3 py-2"></th>
+                                <th class="px-3 py-2 w-8"></th>
                             </tr>
                         </thead>
                         <tbody id="expense-rows" class="bg-white divide-y divide-gray-100">
@@ -768,4 +793,3 @@
 
 </body>
 </html>
-
