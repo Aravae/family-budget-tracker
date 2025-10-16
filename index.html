@@ -53,10 +53,10 @@
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // --- FIREBASE CONFIGURATION FOR EXTERNAL DEPLOYMENT ---
-        // 🚨 IMPORTANT: Replace YOUR_NEW_API_KEY_HERE with the restricted key you generated 🚨
+        // 🚨 IMPORTANT: The key below has been fixed with quotation marks 🚨
         const EXTERNAL_FIREBASE_CONFIG = {
-            // Note: This API key MUST be replaced with your new, restricted key.
-            apiKey: AIzaSyB46gb7n2ipDtKhwclYzzyIP3Sbyo9ySk8, 
+            // FIX APPLIED HERE: Added quotation marks around the API key.
+            apiKey: "AIzaSyB46gb7n2ipDtKhwclYzzyIP3Sbyo9ySk8", 
             authDomain: "vera-family-budget.firebaseapp.com",
             projectId: "vera-family-budget",
             storageBucket: "vera-family-budget.firebasestorage.app",
@@ -215,7 +215,9 @@
         // --- AUTHENTICATION & INITIALIZATION ---
 
         const initFirebase = async () => {
-            if (!firebaseConfig || !firebaseConfig.projectId || firebaseConfig.apiKey === "YOUR_NEW_API_KEY_HERE") {
+            // Check for the placeholder key OR the empty string if the user cleared the quotes
+            if (!firebaseConfig || !firebaseConfig.projectId || 
+                firebaseConfig.apiKey === "YOUR_NEW_API_KEY_HERE" || firebaseConfig.apiKey.length < 20) {
                 console.error("Firebase config is missing, invalid, or using the placeholder key.");
                 displayMessage("Firebase configuration error: Please replace 'YOUR_NEW_API_KEY_HERE' with your actual key.", 'error');
                 return;
@@ -802,3 +804,4 @@
 
 </body>
 </html>
+
